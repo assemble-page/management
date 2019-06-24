@@ -1,25 +1,39 @@
 <template>
   <div id="app">
-    <div id="nav">
-      <router-link to="/">Home</router-link> |
-      <router-link to="/about">About</router-link>
+    <div class="header"></div>
+    <div class="body">
+      <div class="body-wrap">
+        <router-view />
+      </div>
     </div>
-    <router-view/>
   </div>
 </template>
-<style lang="stylus">
-#app
-  font-family 'Avenir', Helvetica, Arial, sans-serif
-  -webkit-font-smoothing antialiased
-  -moz-osx-font-smoothing grayscale
-  text-align center
-  color #2c3e50
 
-#nav
-  padding 30px
-  a
-    font-weight bold
-    color #2c3e50
-    &.router-link-exact-active
-      color #42b983
+<script>
+export default {
+  name: 'app',
+  components: {
+  }
+}
+</script>
+
+<style lang="stylus">
+html
+  box-sizing border-box
+body
+  margin 0
+  padding 0
+div
+  box-sizing inherit
+.header
+  height 60px
+  background-color #409EFF
+.body
+  height calc(100vh - 60px)
+  overflow auto
+  &-wrap
+    width 1100px
+    margin 0 auto
+    height 100%
+    // border 1px #eee solid
 </style>
