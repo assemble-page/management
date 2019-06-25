@@ -4,6 +4,7 @@
         <el-button @click="$router.replace('/')">返回</el-button>
         <el-button type="danger" @click="build()">打包发布</el-button>
         <el-button type="primary" @click="updatePage(undefined, undefined, '同步成功')">同步到数据库</el-button>
+        <el-button @click="checkTemplateVersion">检查模版更新</el-button>
       </div>
 
       <div class="create-body">
@@ -33,7 +34,7 @@
                   class="pages-item"
                   :class="{ 'pages-item__active': details.state[item].id === currentEditPage.id }"
                   @click="checkoutPage(details.state[item])"
-                >{{ item.title || `页面 - ${details.state[item].pageName}` }}</div>
+                >{{ details.state[item].title || `页面 - ${details.state[item].pageName}` }}</div>
               </template>
               <div class="pages-item" @click="showAddPage = true">添加页面</div>
             </div>
@@ -46,7 +47,7 @@
               width="100%"
               height="100%"
               @load="previewLoad"
-              :src="`http://localhost:85/${details.projectName}/build/dist/index.html#/?id=${currentEditPage.id}`" frameborder="0"
+              :src="`http://localhost:85/${details.projectName}/build/dist/index.html#/?id=${currentEditPage.id}&t=1`" frameborder="0"
             />
           </div>
         </div>
@@ -62,7 +63,13 @@
                   <div
                     class="components-item__img"
                     :style="{ backgroundImage: `url(${item.imgUrl})` }"
-                  />
+                  >
+                    <div
+                      v-if="item.needUpdate"
+                      @click.stop="updateComponent(item)"
+                      class="components-item__img--notice"
+                    >可更新</div>
+                  </div>
                   <p>{{ item.componentName }}</p>
                 </div>
               </div>
@@ -108,15 +115,16 @@ export default {
     FormConfig
   },
 
-  async created () {
-    const res = await this.$http.get('/assemble/getComponents')
-    this.components = res.data
+  created () {
   },
 
   async mounted () {
+    this.$loading2.open('获取项目详情')
     const { data } = await this.$http.get('/assemble/getProjectsByName', { params: { name: this.$route.params.name } })
     this.details = data
     this.currentEditPage = data.state && data.state[Object.keys(data.state)[0]]
+    this.getComponents()
+    this.$loading2.close()
 
     window.addEventListener('message', e => {
       if (e.data.isFocus) {
@@ -197,8 +205,14 @@ export default {
       if (!this.currentEditPage.useComponents) {
         this.currentEditPage.useComponents = []
       }
-      this.currentEditPage.useComponents.push({ ...item, id: Date.now() })
+      this.currentEditPage.useComponents.push({
+        ...item,
+        id: Date.now()
+      })
       this.updatePageSyncMessage(this.currentEditPage)
+      this.details.dependencies[item.pkgName] = item.version
+      // 更新项目依赖
+      this.updateProject({ dependencies: this.details.dependencies })
     },
 
     updateProps (field, value) {
@@ -215,12 +229,71 @@ export default {
     },
 
     async build () {
-      // await this.updatePage()
+      await this.updatePage()
       this.$loading2.open('打包中...')
       await this.$http.post('assemble/buildProject', this.details)
       this.$loading2.close()
       this.$message.success('打包成功')
-      this.$refs.preview.contentWindow.reload()
+      // this.$refs.preview.contentWindow.reload()
+    },
+
+    async getComponents () {
+      const { data } = await this.$http.get('/assemble/getComponents')
+      // 校验组件更新
+      if (this.details.dependencies) {
+        Object.keys(this.details.dependencies).forEach(name => {
+          const item = data.find(x => x.pkgName === name)
+          if (item.version !== this.details.dependencies[name]) {
+            item.needUpdate = true
+          }
+        })
+      }
+      this.components = data
+    },
+
+    /**
+     * 更新模版使用的组件依赖
+     */
+    async updateComponent (item) {
+      this.details.dependencies[item.pkgName] = item.version
+      // 更新模版依赖
+      // 更新数据库依赖
+      this.$loading2.open('更新组件会比较慢，重新安装依赖再 build 项目')
+      await this.$http.post('/assemble/updateProjectComponent', {
+        objectId: this.details.objectId,
+        component: item,
+        projectDetails: {
+          ...this.details,
+          objectId: undefined,
+          createdAt: undefined,
+          updatedAt: undefined
+        }
+      })
+      this.$loading2.close()
+      item.needUpdate = false
+    },
+
+    /**
+     * 校验模版是否需要更新
+     */
+    async checkTemplateVersion () {
+      this.$loading2.open('校验中...')
+      const { data: { version, has } } = await this.$http.get('/assemble/checkTemplate', { params: { version: this.details.templateVersion } })
+      this.$loading2.close()
+      this.details.templateVersion = version
+      if (has) {
+        await this.$confirm('模版仓库有新版可用，是否下载更新?')
+        this.$loading2.open('更新模版中，请稍后...')
+        await this.$http.post('/assemble/updateTemplate', {
+          name: this.$route.params.name,
+          details: this.details,
+          version
+        })
+        this.$loading2.close()
+        this.$message.success('更新成功')
+      } else {
+        this.$message.info('模版无更新')
+      }
     }
   }
 }
@@ -277,8 +350,18 @@ export default {
     border 1px #eee solid
     margin 10px 10px 0 0
     &__img
+      position relative
       background-size 100% auto
       background-position center top
       height 100px
       border-bottom 1px #eee solid
+      &--notice
+        position absolute
+        width 100%
+        bottom 0
+        background-color rgb(240, 249, 235)
+        text-align center
+        padding 3px 0
+        font-size 12px
+        cursor pointer
 </style>
