@@ -135,10 +135,8 @@ export default {
       this.$loading2.open('打包中...')
       const { data } = await this.$http.get('/assemble/execProject', getParams('build'))
       this.$loading2.open('更新url...')
-      const url = data.substr(data.indexOf('destination') + 'destination'.length)
-      // await this.$http.post('/assemble/updateProject', { objectId: this.details.objectId, data: { url } })
-      await this.updateProject({ url })
-      this.$set(this.details, 'url', url)
+      await this.updateProject({ url: data })
+      this.$set(this.details, 'url', data)
       this.$loading2.close()
     },
 
@@ -222,6 +220,7 @@ export default {
       await this.$http.post('assemble/buildProject', this.details)
       this.$loading2.close()
       this.$message.success('打包成功')
+      this.$refs.preview.contentWindow.reload()
     }
   }
 }
