@@ -25,6 +25,10 @@ body
   padding 0
 div
   box-sizing inherit
+ul
+  list-style none
+  margin 0
+  padding 0
 .header
   height 60px
   background-color #409EFF
@@ -32,8 +36,8 @@ div
   height calc(100vh - 60px)
   overflow auto
   &-wrap
-    width 1100px
-    margin 0 auto
+    // width 1100px
+    // margin 0 auto
     height 100%
     // border 1px #eee solid
 </style>

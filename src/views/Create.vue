@@ -3,8 +3,7 @@
       <div class="home-top">
         <el-button @click="$router.replace('/')">返回</el-button>
         <el-button type="danger" @click="build()">打包发布</el-button>
-        <el-button type="primary" @click="updatePage(undefined, undefined, '同步成功')">同步到数据库</el-button>
-        <el-button @click="checkTemplateVersion">检查模版更新</el-button>
+        <el-button type="primary" @click="checkTemplateVersion">检查模版更新</el-button>
       </div>
 
       <div class="create-body">
@@ -32,9 +31,14 @@
                   v-for="item in Object.keys(details.state)"
                   :key="item.id"
                   class="pages-item"
-                  :class="{ 'pages-item__active': details.state[item].id === currentEditPage.id }"
+                  :class="{ 'pages-item__active': currentEditPage && details.state[item].id === currentEditPage.id }"
                   @click="checkoutPage(details.state[item])"
-                >{{ details.state[item].title || `页面 - ${details.state[item].pageName}` }}</div>
+                >
+                  <span>{{ details.state[item].title || `页面 - ${details.state[item].pageName}` }}</span>
+                  <span class="pages-item__del" @click.stop="delCurrentPage">
+                    <i class="el-icon-delete" /> 删除
+                  </span>
+                </div>
               </template>
               <div class="pages-item" @click="showAddPage = true">添加页面</div>
             </div>
@@ -49,6 +53,27 @@
               @load="previewLoad"
               :src="`http://localhost:85/${details.projectName}/build/dist/index.html#/?id=${currentEditPage.id}&t=1`" frameborder="0"
             />
+            <div class="create-body__options" v-if="currentEditPage">
+              <ul>
+                <li
+                  v-if="currentEditComponent"
+                  @click="delCurrentComponent"
+                  class="create-body__options--item"
+                >
+                  <i class="el-icon-delete" /> 删除
+                </li>
+                <li
+                  @click="beforeUpdateProject()"
+                  class="create-body__options--item"
+                >
+                  <i class="el-icon-upload" /> 保存更改
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div v-else class="create-body__mobile--empty">
+            <i class="el-icon-folder-opened" />
+            <p>点击左侧页面</p>
           </div>
         </div>
         <div class="create-body__component">
@@ -88,7 +113,7 @@
 
       <add-page
         :show.sync="showAddPage"
-        @change="updatePageSyncMessage"
+        @change="addPage"
       />
   </div>
 </template>
@@ -150,7 +175,7 @@ export default {
 
     postMessage (state = {}) {
       this.$nextTick(() => {
-        this.$refs.preview.contentWindow.postMessage({
+        this.$refs.preview && this.$refs.preview.contentWindow.postMessage({
           isState: true,
           state: {
             ...this.details.state,
@@ -160,24 +185,13 @@ export default {
       })
     },
 
-    async updatePage (pageObj = {}, syncDb = true, message) {
+    async addPage (data) {
       const state = {
         ...this.details.state,
-        ...pageObj
-      }
-      if (syncDb) {
-        // update 数据库
-        // await this.$http.post('/assemble/updateProject', { objectId: this.details.objectId, data: { state } })
-        await this.updateProject({ state })
-        message && this.$message.success(message)
+        [data.id]: data
       }
       this.details.state = state
-      this.currentEditPage = state[this.currentEditPage ? this.currentEditPage.id : Object.keys(pageObj)[0]]
-    },
-
-    async updatePageSyncMessage (data, syncDb) {
-      await this.updatePage({ [data.id]: data }, syncDb)
-      // postMessage 实时更新页面
+      this.currentEditPage = data
       this.postMessage()
     },
 
@@ -185,9 +199,21 @@ export default {
       await this.$http.post('/assemble/updateProject', { objectId: this.details.objectId, data: obj })
     },
 
+    async beforeUpdateProject (message = '保存成功') {
+      this.$loading2.open('保存中...')
+      this.updateProjectDependencies()
+      await this.updateProject(this.getProjectDetails())
+      this.$loading2.close()
+      if (message) {
+        this.$message.success(message)
+      }
+    },
+
     checkoutPage (page) {
-      this.currentEditPage = page
-      this.currentEditComponent = null
+      if (!this.currentEditPage || this.currentEditPage.id !== page.id) {
+        this.currentEditPage = page
+        this.currentEditComponent = null
+      }
     },
 
     checkoutComponent (data) {
@@ -209,10 +235,9 @@ export default {
         ...item,
         id: Date.now()
       })
-      this.updatePageSyncMessage(this.currentEditPage)
+      // this.$loading2.open('处理中...')
       this.details.dependencies[item.pkgName] = item.version
-      // 更新项目依赖
-      this.updateProject({ dependencies: this.details.dependencies })
+      this.postMessage()
     },
 
     updateProps (field, value) {
@@ -220,7 +245,7 @@ export default {
       // this.postMessage()
       const index = this.currentEditPage.useComponents.findIndex(x => x.id === this.currentEditComponent.id)
       this.currentEditPage.useComponents.splice(index, 1, this.currentEditComponent)
-      this.updatePageSyncMessage(this.currentEditPage, false)
+      this.postMessage()
     },
 
     previewLoad () {
@@ -229,12 +254,11 @@ export default {
     },
 
     async build () {
-      await this.updatePage()
+      await this.beforeUpdateProject(false)
       this.$loading2.open('打包中...')
       await this.$http.post('assemble/buildProject', this.details)
       this.$loading2.close()
       this.$message.success('打包成功')
-      // this.$refs.preview.contentWindow.reload()
     },
 
     async getComponents () {
@@ -251,6 +275,47 @@ export default {
       this.components = data
     },
 
+    async delCurrentComponent () {
+      await this.$confirm('确定删除吗？')
+      const i = this.currentEditPage.useComponents.findIndex(x => x.id === this.currentEditComponent.id)
+      this.currentEditPage.useComponents.splice(i, 1)
+      this.currentEditComponent = null
+      this.postMessage()
+    },
+
+    async delCurrentPage () {
+      await this.$confirm('确定删除吗？')
+      delete this.details.state[this.currentEditPage.id]
+      this.currentEditComponent = null
+      this.currentEditPage = null
+      this.postMessage()
+    },
+
+    /**
+     * 更新页面组件依赖字段
+     */
+    updateProjectDependencies () {
+      const pageId = Object.keys(this.details.state)
+      const dependencies = {}
+      pageId.forEach(id => {
+        const { useComponents } = this.details.state[id]
+        useComponents && useComponents.forEach(item => {
+          dependencies[item.pkgName] = item.version
+        })
+      })
+      this.details.dependencies = dependencies
+      // return this.updateProject({ dependencies: this.details.dependencies })
+    },
+
+    getProjectDetails () {
+      return {
+        ...this.details,
+        objectId: undefined,
+        createdAt: undefined,
+        updatedAt: undefined
+      }
+    },
+
     /**
      * 更新模版使用的组件依赖
      */
@@ -262,12 +327,7 @@ export default {
       await this.$http.post('/assemble/updateProjectComponent', {
         objectId: this.details.objectId,
         component: item,
-        projectDetails: {
-          ...this.details,
-          objectId: undefined,
-          createdAt: undefined,
-          updatedAt: undefined
-        }
+        projectDetails: this.getProjectDetails()
       })
       this.$loading2.close()
       item.needUpdate = false
@@ -307,20 +367,48 @@ export default {
     justify-content center
     height calc(100% - 50px)
     & > div
-      width 33.333%
       height 100%
       overflow auto
     &__preview
       display flex
       align-items center
+      justify-content center
+      flex-grow 1
+      background-color #f2f2f2
     &__mobile
-      width 100%
+      position relative
+      width 375px
       height 80%!important
       border 1px #eee solid
-      // margin-top
+      background-color #fff
+      &--empty
+        text-align center
+        color #999
+        i
+          font-size 60px
+      iframe
+        overflow auto
+    &__options
+      position absolute
+      right -140px
+      top 50%
+      width 100px
+      transform translateY(-50%)
+      ul
+        font-size 14px
+        color #999
+      &--item
+        cursor pointer
+        line-height 30px
+        transition all .5s
+        &:hover
+          color #333
     &__component
+      width 400px
       padding 0 10px
     &__page
+      width 300px
+      padding 0 10px
       &--nopack
         display flex
         justify-content center
@@ -328,27 +416,36 @@ export default {
 
   .pages
     &-item
+      position relative
       display flex
       justify-content center
       align-items center
-      // width 100%
-      height 50px
-      // background-color #f2f2f2
+      height 40px
       border 1px #cecece solid
       margin-top 10px
       margin-right 10px
       cursor pointer
       border-radius 4px
+      overflow hidden
       &:hover
       &__active
         background-color #ecf5ff
         border-color #b3d8ff
         color #409eff
+      &__del
+        position absolute
+        right -50px
+        transition all .3s
+        opacity 0
+      &:hover .pages-item__del
+        right 10px
+        opacity 1
 
   .components-item
     width 100px
     border 1px #eee solid
     margin 10px 10px 0 0
+    cursor pointer
     &__img
       position relative
       background-size 100% auto

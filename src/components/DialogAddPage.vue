@@ -4,9 +4,9 @@
       <el-form-item label="标题" label-width="100" prop="title">
         <el-input v-model="form.title" autocomplete="off"></el-input>
       </el-form-item>
-      <el-form-item label="名称" label-width="100" prop="pageName">
-        <el-input v-model="form.pageName" autocomplete="off"></el-input>
-      </el-form-item>
+      <!--<el-form-item label="名称" label-width="100" prop="pageName">-->
+        <!--<el-input v-model="form.pageName" autocomplete="off"></el-input>-->
+      <!--</el-form-item>-->
       <el-form-item label="描述" label-width="100">
         <el-input v-model="form.desc" autocomplete="off"></el-input>
       </el-form-item>
@@ -21,29 +21,29 @@
 <script>
 export default {
   data () {
-    const checkName = (rule, value, callback) => {
-      if (/^[a-zA-Z]+$/.test(value)) {
-        callback()
-      } else {
-        callback(new Error(rule.message))
-      }
-    }
+    // const checkName = (rule, value, callback) => {
+    //   if (/^[a-zA-Z]+$/.test(value)) {
+    //     callback()
+    //   } else {
+    //     callback(new Error(rule.message))
+    //   }
+    // }
     return {
       dialogFormVisible: this.show,
       form: {
         title: '',
-        pageName: '',
+        // pageName: '',
         desc: ''
       },
       rules: {
         title: [
           { required: true, message: '请输入标题', trigger: 'blur' },
           { min: 1, max: 20, message: '长度在 1 到 20 个字符', trigger: 'blur' }
-        ],
-        pageName: [
-          { required: true, message: '请输入名称', trigger: 'blur' },
-          { validator: checkName, message: '只能是字母组成', trigger: 'blur' }
         ]
+        // pageName: [
+        //   { required: true, message: '请输入名称', trigger: 'blur' },
+        //   { validator: checkName, message: '只能是字母组成', trigger: 'blur' }
+        // ]
       }
     }
   },

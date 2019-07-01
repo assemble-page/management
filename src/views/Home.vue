@@ -20,11 +20,15 @@
     <el-table-column
       prop="templateVersion"
       label="模版版本"
-      width="120">
+      width="100">
     </el-table-column>
     <el-table-column
       prop="createdAt"
       label="创建时间">
+    </el-table-column>
+    <el-table-column
+      prop="url"
+      label="地址">
     </el-table-column>
     <el-table-column
       fixed="right"
