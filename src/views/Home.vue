@@ -93,8 +93,11 @@ export default {
 
 <style lang="stylus">
 .home
+  width 1200px
+  margin 0 auto
   height 100%
   &-top
     padding 10px
     border-bottom 1px #eeeeee solid
+    // background-color #fefefe
 </style>

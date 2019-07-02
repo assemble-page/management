@@ -31,7 +31,8 @@ ul
   padding 0
 .header
   height 60px
-  background-color #409EFF
+  background-color #4a4c55
+  box-shadow 0 1px 2px rgba(0, 0, 0, .1)
 .body
   height calc(100vh - 60px)
   overflow auto

@@ -1,125 +1,137 @@
 <template>
   <div class="create" v-if="details">
-      <div class="home-top">
-        <el-button @click="$router.replace('/')">返回</el-button>
-        <el-button type="danger" @click="build()">打包发布</el-button>
-        <el-button type="primary" @click="checkTemplateVersion">检查模版更新</el-button>
-      </div>
+    <div class="home-top">
+      <el-button @click="$router.replace('/')">返回</el-button>
+      <el-button type="danger" @click="build()">打包发布</el-button>
+      <el-button type="primary" @click="checkTemplateVersion">检查模版更新</el-button>
+    </div>
 
-      <div class="create-body">
-        <div class="create-body__page">
-          <template v-if="!details.url">
-            <el-alert
-              title="该项目还未初始化依赖及初次打包"
-              type="warning">
-            </el-alert>
-            <div class="create-body__page--nopack">
-              <el-button
-                type="primary"
-                @click="install"
-              >
-                安装依赖并打包
-              </el-button>
-            </div>
-          </template>
-          <template v-if="details.url">
-            <p>项目页面</p>
-            <!-- <el-button type="primary" @click="showAddPage = true">添加页面</el-button> -->
-            <div class="pages">
-              <template v-if="details && details.state">
-                <div
-                  v-for="item in Object.keys(details.state)"
-                  :key="item.id"
-                  class="pages-item"
-                  :class="{ 'pages-item__active': currentEditPage && details.state[item].id === currentEditPage.id }"
-                  @click="checkoutPage(details.state[item])"
-                >
-                  <span>{{ details.state[item].title || `页面 - ${details.state[item].pageName}` }}</span>
-                  <span class="pages-item__del" @click.stop="delCurrentPage">
-                    <i class="el-icon-delete" /> 删除
-                  </span>
-                </div>
-              </template>
-              <div class="pages-item" @click="showAddPage = true">添加页面</div>
-            </div>
-          </template>
-        </div>
-        <div class="create-body__preview">
-          <div v-if="currentEditPage" class="create-body__mobile">
-            <iframe
-              ref="preview"
-              width="100%"
-              height="100%"
-              @load="previewLoad"
-              :src="`http://localhost:85/${details.projectName}/build/dist/index.html#/?id=${currentEditPage.id}&t=1`" frameborder="0"
-            />
-            <div class="create-body__options" v-if="currentEditPage">
-              <ul>
-                <li
-                  v-if="currentEditComponent"
-                  @click="delCurrentComponent"
-                  class="create-body__options--item"
-                >
-                  <i class="el-icon-delete" /> 删除
-                </li>
-                <li
-                  @click="beforeUpdateProject()"
-                  class="create-body__options--item"
-                >
-                  <i class="el-icon-upload" /> 保存更改
-                </li>
-              </ul>
-            </div>
+    <div class="create-body">
+      <div class="create-body__page">
+        <template v-if="!details.url">
+          <el-alert
+            title="该项目还未初始化依赖及初次打包"
+            type="warning">
+          </el-alert>
+          <div class="create-body__page--nopack">
+            <el-button
+              type="primary"
+              @click="install"
+            >
+              安装依赖并打包
+            </el-button>
           </div>
+        </template>
+        <template v-if="details.url">
+          <p>项目页面</p>
+          <!-- <el-button type="primary" @click="showAddPage = true">添加页面</el-button> -->
+          <div class="pages">
+            <template v-if="details && details.state">
+              <div
+                v-for="item in Object.keys(details.state)"
+                :key="item.id"
+                class="pages-item"
+                :class="{ 'pages-item__active': currentEditPage && details.state[item].id === currentEditPage.id }"
+                @click="checkoutPage(details.state[item])"
+              >
+                <span>{{ details.state[item].title || `页面 - ${details.state[item].pageName}` }}</span>
+                <span class="pages-item__del" @click.stop="delCurrentPage">
+                  <i class="el-icon-delete" /> 删除
+                </span>
+              </div>
+            </template>
+            <div class="pages-item" @click="showAddPage = true">添加页面</div>
+          </div>
+        </template>
+      </div>
+      <div class="create-body__preview">
+        <div class="create-body__mobile">
+          <iframe
+            v-if="currentEditPage"
+            ref="preview"
+            width="100%"
+            height="100%"
+            @load="previewLoad"
+            :src="`http://localhost:85/${details.projectName}/build/dist/index.html#/?id=${currentEditPage.id}&t=3`" frameborder="0"
+          />
           <div v-else class="create-body__mobile--empty">
             <i class="el-icon-folder-opened" />
-            <p>点击左侧页面</p>
+            <p>点击左侧选中页面</p>
+          </div>
+          <div class="create-body__options">
+            <ul>
+              <li
+                v-if="currentEditComponent"
+                @click="delCurrentComponent"
+                class="create-body__options--item"
+              >
+                <i class="el-icon-delete" /> 删除
+              </li>
+              <li
+                @click="beforeUpdateProject()"
+                class="create-body__options--item"
+              >
+                <i class="el-icon-upload" /> 保存更改
+              </li>
+            </ul>
           </div>
         </div>
-        <div class="create-body__component">
-          <el-tabs v-model="rightFormTab" type="card">
-            <el-tab-pane label="组件库" name="first">
-              <div class="components">
-                <div
-                  v-for="item in components"
-                  :key="item.pkgName"
-                  class="components-item"
-                  @click="addComponent(item)">
-                  <div
-                    class="components-item__img"
-                    :style="{ backgroundImage: `url(${item.imgUrl})` }"
-                  >
-                    <div
-                      v-if="item.needUpdate"
-                      @click.stop="updateComponent(item)"
-                      class="components-item__img--notice"
-                    >可更新</div>
-                  </div>
-                  <p>{{ item.componentName }}</p>
-                </div>
-              </div>
-            </el-tab-pane>
-            <el-tab-pane label="组件配置" name="second">
-              <form-config
-                v-if="currentEditComponent"
-                :schema="currentEditComponent.props"
-                :updateProps="updateProps"
-              />
-              <p v-else style="color:#999;text-align:center;padding-top:30px;">请选中组件</p>
-            </el-tab-pane>
-          </el-tabs>
-        </div>
       </div>
+      <div class="create-body__component">
+        <el-tabs v-model="rightFormTab" type="card">
+          <el-tab-pane label="组件库" name="first">
+            <div class="components">
+              <div
+                v-for="item in components"
+                :key="item.pkgName"
+                class="components-item"
+                @click="addComponent(item)">
+                <div
+                  class="components-item__img"
+                  :style="{ backgroundImage: `url(${item.imgUrl})` }"
+                >
+                  <div
+                    v-if="item.needUpdate"
+                    @click.stop="updateComponent(item)"
+                    class="components-item__img--notice"
+                  >可更新</div>
+                </div>
+                <span>{{ item.componentName }}</span>
+              </div>
+              <div class="components-item" @click="showAddWebComponent = true">
+                <div class="components-item__img"></div>
+                <span>添加web components</span>
+              </div>
+            </div>
+          </el-tab-pane>
+          <el-tab-pane label="组件配置" name="second">
+            <form-config
+              v-if="currentEditComponent && currentEditComponent.type === 1"
+              :schema="currentEditComponent.props"
+              :updateProps="updateProps"
+            />
+            <p v-else style="color:#999;text-align:center;padding-top:30px;">请选中组件</p>
+          </el-tab-pane>
+        </el-tabs>
+      </div>
+    </div>
 
-      <add-page
-        :show.sync="showAddPage"
-        @change="addPage"
-      />
+    <add-page
+      :show.sync="showAddPage"
+      @change="addPage"
+    />
+
+    <add-web-component
+      :show.sync="showAddWebComponent"
+      :edit-data="currentEditComponent && currentEditComponent.type === 2 ? currentEditComponent : null"
+      @change="addComponent"
+    />
   </div>
 </template>
 
 <script>
 import AddPage from '../components/DialogAddPage'
+import AddWebComponent from '../components/DialogWebComponent'
 import FormConfig from '../components/form'
 
 export default {
@@ -129,6 +141,7 @@ export default {
       components: [],
       showAddPage: false,
       showEditProject: false,
+      showAddWebComponent: false,
       currentEditPage: null,
       currentEditComponent: null,
       rightFormTab: 'first'
@@ -137,7 +150,8 @@ export default {
 
   components: {
     AddPage,
-    FormConfig
+    FormConfig,
+    AddWebComponent
   },
 
   created () {
@@ -153,7 +167,13 @@ export default {
 
     window.addEventListener('message', e => {
       if (e.data.isFocus) {
-        this.checkoutComponent(e.data.data)
+        const { data } = e.data
+        if (data.type === 1) {
+          this.checkoutComponent(data)
+        } else if (data.type === 2) {
+          this.showAddWebComponent = true
+          this.currentEditComponent = data
+        }
       } else if (e.data.isState) {
         console.log(e.data)
       }
@@ -231,12 +251,22 @@ export default {
       if (!this.currentEditPage.useComponents) {
         this.currentEditPage.useComponents = []
       }
-      this.currentEditPage.useComponents.push({
-        ...item,
-        id: Date.now()
-      })
-      // this.$loading2.open('处理中...')
-      this.details.dependencies[item.pkgName] = item.version
+      if (item.type === 2) {
+        if (item.isEdit) {
+          delete item.isEdit
+          const i = this.currentEditPage.useComponents.findIndex(x => x.id === item.id)
+          this.currentEditPage.useComponents.splice(i, 1, item)
+        } else {
+          this.currentEditPage.useComponents.push(item)
+        }
+      } else {
+        this.currentEditPage.useComponents.push({
+          ...item,
+          type: 1,
+          id: Date.now()
+        })
+        this.details.dependencies[item.pkgName] = item.version
+      }
       this.postMessage()
     },
 
@@ -287,7 +317,8 @@ export default {
       await this.$confirm('确定删除吗？')
       delete this.details.state[this.currentEditPage.id]
       this.currentEditComponent = null
-      this.currentEditPage = null
+      const id = Object.keys(this.details.state)[0]
+      this.currentEditPage = id ? this.details.state[id] : null
       this.postMessage()
     },
 
@@ -355,6 +386,18 @@ export default {
         this.$message.info('模版无更新')
       }
     }
+    // addWebComponent (data) {
+    //   if (!this.currentEditPage) {
+    //     this.$message.info('请先添加页面')
+    //     return
+    //   }
+    //   // console.log(data)
+    //   if (!this.currentEditPage.webComponents) {
+    //     this.currentEditPage.webComponents = []
+    //   }
+    //   this.currentEditPage.webComponents.push(data)
+    //   this.postMessage()
+    // }
   }
 }
 </script>
@@ -382,6 +425,7 @@ export default {
       border 1px #eee solid
       background-color #fff
       &--empty
+        padding-top 100px
         text-align center
         color #999
         i
@@ -440,25 +484,27 @@ export default {
       &:hover .pages-item__del
         right 10px
         opacity 1
-
-  .components-item
-    width 100px
-    border 1px #eee solid
-    margin 10px 10px 0 0
-    cursor pointer
-    &__img
-      position relative
-      background-size 100% auto
-      background-position center top
-      height 100px
-      border-bottom 1px #eee solid
-      &--notice
-        position absolute
-        width 100%
-        bottom 0
-        background-color rgb(240, 249, 235)
-        text-align center
-        padding 3px 0
-        font-size 12px
-        cursor pointer
+  .components
+    display flex
+    &-item
+      width 100px
+      border 1px #eee solid
+      margin 10px 10px 0 0
+      cursor pointer
+      text-align center
+      &__img
+        position relative
+        background-size 100% auto
+        background-position center top
+        height 100px
+        border-bottom 1px #eee solid
+        &--notice
+          position absolute
+          width 100%
+          bottom 0
+          background-color rgb(240, 249, 235)
+          text-align center
+          padding 3px 0
+          font-size 12px
+          cursor pointer
 </style>
