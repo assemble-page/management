@@ -67,7 +67,7 @@
               ref="preview"
               width="100%"
               @load="previewLoad"
-              :src="`${process.env.VUE_APP_PREVIEW_URL}/${details.projectName}/build/dist/index.html#/?id=${currentEditPage.id}`"
+              :src="previewUrl"
               frameborder="0"
             />
           </template>
@@ -203,6 +203,14 @@ export default {
     FormConfig,
     AddWebComponent,
     ProjectForm
+  },
+
+  computed: {
+    previewUrl () {
+      return this.currentEditPage
+        ? `${process.env.VUE_APP_PREVIEW_URL}/${this.details.projectName}/build/dist/index.html#/?id=${this.currentEditPage.id}`
+        : ''
+    }
   },
 
   created () {
