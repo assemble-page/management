@@ -415,7 +415,8 @@ export default {
         ...this.details,
         objectId: undefined,
         createdAt: undefined,
-        updatedAt: undefined
+        updatedAt: undefined,
+        components: undefined
       }
     },
 
