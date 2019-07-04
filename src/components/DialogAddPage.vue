@@ -1,14 +1,14 @@
 <template>
-  <el-dialog title="新建页面" :visible.sync="dialogFormVisible" width="400px">
-    <el-form ref="form" :model="form" :rules="rules">
-      <el-form-item label="标题" label-width="100" prop="title">
+  <el-dialog :title="isEdit ? `编辑页面` : `新建页面`" :visible.sync="dialogFormVisible" width="600px">
+    <el-form ref="form" :model="form" :rules="rules" label-width="80px">
+      <el-form-item label="标题" prop="title">
         <el-input v-model="form.title" autocomplete="off"></el-input>
       </el-form-item>
-      <!--<el-form-item label="名称" label-width="100" prop="pageName">-->
-        <!--<el-input v-model="form.pageName" autocomplete="off"></el-input>-->
-      <!--</el-form-item>-->
-      <el-form-item label="描述" label-width="100">
-        <el-input v-model="form.desc" autocomplete="off"></el-input>
+      <el-form-item label="描述">
+        <el-input v-model="form.desc" autocomplete="off" type="textarea"></el-input>
+      </el-form-item>
+      <el-form-item label="mixins">
+        <el-input v-model="form.mixins" :autosize="{ minRows: 4 }" type="textarea"></el-input>
       </el-form-item>
     </el-form>
     <div slot="footer" class="dialog-footer">
@@ -33,7 +33,9 @@ export default {
       form: {
         title: '',
         // pageName: '',
-        desc: ''
+        desc: '',
+        mixins: '',
+        backgroundColor: ''
       },
       rules: {
         title: [
@@ -49,12 +51,26 @@ export default {
   },
 
   props: {
-    show: Boolean
+    show: Boolean,
+    isEdit: Boolean,
+    editData: Object
   },
 
   watch: {
     show (val) {
       this.dialogFormVisible = val
+      if (val) {
+        if (this.isEdit) {
+          this.fill(this.editData)
+        } else {
+          this.form = {
+            title: '',
+            desc: '',
+            mixins: '{\n  data () {\n    return {\n\n    } \n  }\n},\n{\n  created () {\n\n  }\n},\n{\n  mounted () {\n\n  }\n},\n{\n  methods: {\n\n  }\n}',
+            backgroundColor: ''
+          }
+        }
+      }
     },
     dialogFormVisible: {
       handler (val) {
@@ -62,16 +78,32 @@ export default {
           this.$emit('update:show', false)
         }
       }
+    },
+    editData: {
+      handler (val) {
+        if (val) {
+          this.fill(val)
+        }
+      },
+      deep: true,
+      immediate: true
     }
   },
 
   methods: {
+    fill (val) {
+      this.form.title = val.title
+      this.form.desc = val.desc
+      this.form.mixins = val.mixins
+      this.form.backgroundColor = val.backgroundColor
+    },
+
     confirm () {
       this.$refs.form.validate((valid) => {
         if (valid) {
           this.$emit('change', {
             ...this.form,
-            id: Date.now()
+            id: this.isEdit ? this.editData.id : Date.now()
           })
           this.dialogFormVisible = false
         } else {

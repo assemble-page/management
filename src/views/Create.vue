@@ -22,38 +22,54 @@
             </el-button>
           </div>
         </template>
-        <template v-if="details.url">
-          <p>项目页面</p>
-          <!-- <el-button type="primary" @click="showAddPage = true">添加页面</el-button> -->
-          <div class="pages">
-            <template v-if="details && details.state">
-              <div
-                v-for="item in Object.keys(details.state)"
-                :key="item.id"
-                class="pages-item"
-                :class="{ 'pages-item__active': currentEditPage && details.state[item].id === currentEditPage.id }"
-                @click="checkoutPage(details.state[item])"
-              >
-                <span>{{ details.state[item].title || `页面 - ${details.state[item].pageName}` }}</span>
-                <span class="pages-item__del" @click.stop="delCurrentPage">
-                  <i class="el-icon-delete" /> 删除
-                </span>
+        <template v-else>
+          <el-tabs v-model="leftTab" type="card">
+            <el-tab-pane label="项目" name="project">
+              <p>基本设置</p>
+              <project-form
+                v-if="details"
+                :details="details"
+                @change="saveProjectSetting"
+              />
+            </el-tab-pane>
+            <el-tab-pane label="页面" name="page">
+              <div class="pages">
+                <template v-if="details && details.state">
+                  <div
+                    v-for="item in Object.keys(details.state)"
+                    :key="item.id"
+                    class="pages-item"
+                    :class="{ 'pages-item__active': currentEditPage && details.state[item].id === currentEditPage.id }"
+                    @click="checkoutPage(details.state[item])"
+                  >
+                    <span>{{ details.state[item].title || `页面 - ${details.state[item].pageName}` }}</span>
+                    <div class="pages-item__opt">
+                      <span class="pages-item__del" @click.stop="isEditPage = true;showAddPage = true">
+                        <i class="el-icon-edit" /> 编辑
+                      </span>
+                      <span class="pages-item__del" @click.stop="delCurrentPage">
+                        <i class="el-icon-delete" /> 删除
+                      </span>
+                    </div>
+                  </div>
+                </template>
+                <div class="pages-item" @click="isEditPage = false;showAddPage = true">添加页面</div>
               </div>
-            </template>
-            <div class="pages-item" @click="showAddPage = true">添加页面</div>
-          </div>
+            </el-tab-pane>
+          </el-tabs>
         </template>
       </div>
       <div class="create-body__preview">
         <div class="create-body__mobile">
-          <iframe
-            v-if="currentEditPage"
-            ref="preview"
-            width="100%"
-            height="100%"
-            @load="previewLoad"
-            :src="`http://localhost:85/${details.projectName}/build/dist/index.html#/?id=${currentEditPage.id}&t=3`" frameborder="0"
-          />
+          <template v-if="currentEditPage">
+            <div class="create-body__mobile--title">{{ currentEditPage.title }}</div>
+            <iframe
+              ref="preview"
+              width="100%"
+              @load="previewLoad"
+              :src="`http://localhost:85/${details.projectName}/build/dist/index.html#/?id=${currentEditPage.id}&t=3`" frameborder="0"
+            />
+          </template>
           <div v-else class="create-body__mobile--empty">
             <i class="el-icon-folder-opened" />
             <p>点击左侧选中页面</p>
@@ -98,7 +114,7 @@
                 </div>
                 <span>{{ item.componentName }}</span>
               </div>
-              <div class="components-item" @click="showAddWebComponent = true">
+              <div class="components-item" @click="isEditWebComponent = false;showAddWebComponent = true">
                 <div class="components-item__img"></div>
                 <span>添加web components</span>
               </div>
@@ -118,13 +134,17 @@
 
     <add-page
       :show.sync="showAddPage"
+      :edit-data="currentEditPage"
+      :is-edit="isEditPage"
       @change="addPage"
     />
 
     <add-web-component
       :show.sync="showAddWebComponent"
       :edit-data="currentEditComponent && currentEditComponent.type === 2 ? currentEditComponent : null"
+      :is-edit="isEditWebComponent"
       @change="addComponent"
+      @remove="delCurrentComponent"
     />
   </div>
 </template>
@@ -133,6 +153,7 @@
 import AddPage from '../components/DialogAddPage'
 import AddWebComponent from '../components/DialogWebComponent'
 import FormConfig from '../components/form'
+import ProjectForm from '../components/ProjectSetting'
 
 export default {
   data () {
@@ -142,16 +163,20 @@ export default {
       showAddPage: false,
       showEditProject: false,
       showAddWebComponent: false,
+      isEditPage: false,
+      isEditWebComponent: false,
       currentEditPage: null,
       currentEditComponent: null,
-      rightFormTab: 'first'
+      rightFormTab: 'first',
+      leftTab: 'page'
     }
   },
 
   components: {
     AddPage,
     FormConfig,
-    AddWebComponent
+    AddWebComponent,
+    ProjectForm
   },
 
   created () {
@@ -161,6 +186,10 @@ export default {
     this.$loading2.open('获取项目详情')
     const { data } = await this.$http.get('/assemble/getProjectsByName', { params: { name: this.$route.params.name } })
     this.details = data
+    this.message({
+      isGlobal: true,
+      globalData: data
+    })
     this.currentEditPage = data.state && data.state[Object.keys(data.state)[0]]
     this.getComponents()
     this.$loading2.close()
@@ -171,8 +200,9 @@ export default {
         if (data.type === 1) {
           this.checkoutComponent(data)
         } else if (data.type === 2) {
-          this.showAddWebComponent = true
+          this.isEditWebComponent = true
           this.currentEditComponent = data
+          this.showAddWebComponent = true
         }
       } else if (e.data.isState) {
         console.log(e.data)
@@ -194,21 +224,25 @@ export default {
     },
 
     postMessage (state = {}) {
+      this.message({
+        isState: true,
+        state: {
+          ...this.details.state,
+          ...state
+        }
+      })
+    },
+
+    message (data) {
       this.$nextTick(() => {
-        this.$refs.preview && this.$refs.preview.contentWindow.postMessage({
-          isState: true,
-          state: {
-            ...this.details.state,
-            ...state
-          }
-        }, '*')
+        this.$refs.preview && this.$refs.preview.contentWindow.postMessage(data, '*')
       })
     },
 
     async addPage (data) {
       const state = {
         ...this.details.state,
-        [data.id]: data
+        [data.id]: this.isEditPage ? { ...this.details.state[data.id], ...data } : data
       }
       this.details.state = state
       this.currentEditPage = data
@@ -252,8 +286,7 @@ export default {
         this.currentEditPage.useComponents = []
       }
       if (item.type === 2) {
-        if (item.isEdit) {
-          delete item.isEdit
+        if (this.isEditWebComponent) {
           const i = this.currentEditPage.useComponents.findIndex(x => x.id === item.id)
           this.currentEditPage.useComponents.splice(i, 1, item)
         } else {
@@ -309,8 +342,13 @@ export default {
       await this.$confirm('确定删除吗？')
       const i = this.currentEditPage.useComponents.findIndex(x => x.id === this.currentEditComponent.id)
       this.currentEditPage.useComponents.splice(i, 1)
+      const name = this.currentEditComponent.file
       this.currentEditComponent = null
       this.postMessage()
+      this.message({
+        isRemoveNode: true,
+        selector: `#${name}`
+      })
     },
 
     async delCurrentPage () {
@@ -385,19 +423,22 @@ export default {
       } else {
         this.$message.info('模版无更新')
       }
+    },
+
+    async saveProjectSetting (data) {
+      this.$loading2.open('保存中...')
+      this.details = {
+        ...this.details,
+        ...(data || {})
+      }
+      await this.updateProject(this.getProjectDetails())
+      this.message({
+        isGlobal: true,
+        globalData: this.details
+      })
+      this.$loading2.close()
+      this.$message.success('保存成功')
     }
-    // addWebComponent (data) {
-    //   if (!this.currentEditPage) {
-    //     this.$message.info('请先添加页面')
-    //     return
-    //   }
-    //   // console.log(data)
-    //   if (!this.currentEditPage.webComponents) {
-    //     this.currentEditPage.webComponents = []
-    //   }
-    //   this.currentEditPage.webComponents.push(data)
-    //   this.postMessage()
-    // }
   }
 }
 </script>
@@ -430,8 +471,17 @@ export default {
         color #999
         i
           font-size 60px
+      &--title
+        height 50px
+        display flex
+        justify-content center
+        align-items center
+        background #4a4c55
+        color: #fff
+        font-size: 14px
       iframe
         overflow auto
+        height calc(100% - 50px)
     &__options
       position absolute
       right -140px
@@ -476,12 +526,12 @@ export default {
         background-color #ecf5ff
         border-color #b3d8ff
         color #409eff
-      &__del
+      &__opt
         position absolute
         right -50px
         transition all .3s
         opacity 0
-      &:hover .pages-item__del
+      &:hover .pages-item__opt
         right 10px
         opacity 1
   .components

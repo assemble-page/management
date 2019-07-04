@@ -32,11 +32,12 @@
         <el-input v-model="form.file" />
       </el-form-item>
       <el-form-item label="代码" prop="code">
-        <el-input v-model="form.code" type="textarea" autosize />
+        <el-input v-model="form.code" type="textarea" :autosize="{ minRows: 3 }" />
       </el-form-item>
     </el-form>
     <div slot="footer" class="dialog-footer">
       <el-button @click="dialogFormVisible = false">取 消</el-button>
+      <el-button v-if="false" type="danger" @click="remove">删 除</el-button>
       <el-button type="primary" @click="confirm">确 定</el-button>
     </div>
   </el-dialog>
@@ -49,7 +50,7 @@ export default {
   data () {
     return {
       dialogFormVisible: this.show,
-      isEdit: false,
+      // isEdit: false,
       baseUrls: [
         'https://iming.work/demo/generate-web-components/service/public/',
         'http://aikanvod.miguvideo.net/ifs/img/migu_',
@@ -86,13 +87,14 @@ export default {
 
   props: {
     show: Boolean,
-    editData: Object
+    editData: Object,
+    isEdit: Boolean
   },
 
   watch: {
     show (val) {
       this.dialogFormVisible = val
-      if (val) {
+      if (val && !this.isEdit) {
         // 重置form
         this.form = {
           devBaseUrl: '',
@@ -113,7 +115,7 @@ export default {
     },
     editData: {
       handler (val) {
-        this.isEdit = !!val
+        // this.isEdit = !!val
         if (val) {
           this.form = {
             ...val
@@ -128,7 +130,7 @@ export default {
     confirm () {
       this.$refs.form.validate((valid) => {
         if (valid) {
-          const finalData = this.form.id ? { ...this.form, isEdit: true } : {
+          const finalData = this.form.id ? { ...this.form } : {
             ...this.form,
             id: Date.now()
           }
@@ -138,6 +140,10 @@ export default {
           return false
         }
       })
+    },
+
+    remove () {
+      this.$emit('remove')
     }
   }
 }
