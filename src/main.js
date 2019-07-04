@@ -8,7 +8,7 @@ import './plugins/element.js'
 Vue.config.productionTip = false
 
 Vue.prototype.$http = axios.create({
-  baseURL: 'http://localhost:7001'
+  baseURL: process.env.VUE_APP_BASE || '/'
 })
 
 new Vue({
