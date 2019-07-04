@@ -66,7 +66,7 @@ export default {
           this.form = {
             title: '',
             desc: '',
-            mixins: '{\n  data () {\n    return {\n\n    } \n  }\n},\n{\n  created () {\n\n  }\n},\n{\n  mounted () {\n\n  }\n},\n{\n  methods: {\n\n  }\n}',
+            mixins: '{\n  data () {\n    return {\n\n    } \n  },\n  created () {\n\n  },\n  mounted () {\n\n  },\n  methods: {\n\n  }\n}',
             backgroundColor: ''
           }
         }

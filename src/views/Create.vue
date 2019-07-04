@@ -2,8 +2,8 @@
   <div class="create" v-if="details">
     <div class="home-top">
       <el-button @click="$router.replace('/')">返回</el-button>
-      <el-button type="danger" @click="build()">打包发布</el-button>
-      <el-button type="primary" @click="checkTemplateVersion">检查模版更新</el-button>
+      <!--<el-button type="danger" @click="build()">打包发布</el-button>-->
+      <!--<el-button type="primary" @click="checkTemplateVersion">检查模版更新</el-button>-->
     </div>
 
     <div class="create-body">
@@ -67,7 +67,8 @@
               ref="preview"
               width="100%"
               @load="previewLoad"
-              :src="`http://localhost:85/${details.projectName}/build/dist/index.html#/?id=${currentEditPage.id}&t=3`" frameborder="0"
+              :src="`${process.env.VUE_APP_PREVIEW_URL || ''}/${details.projectName}/build/dist/index.html#/?id=${currentEditPage.id}`"
+              frameborder="0"
             />
           </template>
           <div v-else class="create-body__mobile--empty">
@@ -76,6 +77,13 @@
           </div>
           <div class="create-body__options">
             <ul>
+              <li
+                v-if="currentEditPage"
+                @click="reloadIframe"
+                class="create-body__options--item"
+              >
+                <i class="el-icon-refresh" /> 刷新
+              </li>
               <li
                 v-if="currentEditComponent"
                 @click="delCurrentComponent"
@@ -88,6 +96,24 @@
                 class="create-body__options--item"
               >
                 <i class="el-icon-upload" /> 保存更改
+              </li>
+              <li
+                @click="checkTemplateVersion()"
+                class="create-body__options--item"
+              >
+                <i class="el-icon-refresh-right" /> 检查模版更新
+              </li>
+              <li
+                @click="build()"
+                class="create-body__options--item"
+              >
+                <i class="el-icon-box" /> 打包发布
+              </li>
+              <li
+                @click="downloadProject()"
+                class="create-body__options--item"
+              >
+                <i class="el-icon-box" /> 下载项目
               </li>
             </ul>
           </div>
@@ -438,6 +464,15 @@ export default {
       })
       this.$loading2.close()
       this.$message.success('保存成功')
+    },
+
+    reloadIframe () {
+      this.$refs.preview.contentWindow.location.reload()
+      this.$message.success('刷新成功')
+    },
+
+    downloadProject () {
+
     }
   }
 }
@@ -486,7 +521,7 @@ export default {
       position absolute
       right -140px
       top 50%
-      width 100px
+      width 110px
       transform translateY(-50%)
       ul
         font-size 14px
