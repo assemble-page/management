@@ -67,7 +67,7 @@
               ref="preview"
               width="100%"
               @load="previewLoad"
-              :src="`${process.env.VUE_APP_PREVIEW_URL || ''}/${details.projectName}/build/dist/index.html#/?id=${currentEditPage.id}`"
+              :src="`${process.env.VUE_APP_PREVIEW_URL}/${details.projectName}/build/dist/index.html#/?id=${currentEditPage.id}`"
               frameborder="0"
             />
           </template>
