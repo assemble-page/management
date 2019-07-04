@@ -208,7 +208,7 @@ export default {
   computed: {
     previewUrl () {
       return this.currentEditPage
-        ? `${process.env.VUE_APP_PREVIEW_URL}/${this.details.projectName}/build/dist/index.html#/?id=${this.currentEditPage.id}`
+        ? `${process.env.VUE_APP_PREVIEW_URL}/${this.details.projectName}/build/dist/#/?id=${this.currentEditPage.id}`
         : ''
     }
   },
