@@ -481,10 +481,11 @@ export default {
     },
 
     async downloadProject () {
-      this.$loading2.open('压缩中...')
-      await this.$http.get(`/assemble/download?name=${this.$route.params.name}`)
-      this.$loading2.close()
-      this.$message.success('下载成功')
+      // this.$loading2.open('压缩中...')
+      // await this.$http.get(`/assemble/download?name=${this.$route.params.name}`)
+      // this.$loading2.close()
+      // this.$message.success('下载成功')
+      window.open(`/assemble/download?name=${this.$route.params.name}`)
     }
   }
 }
